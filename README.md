@@ -1,4 +1,3 @@
-# blog-posts
 Version control for my blog posts:
 - https://mycodeworksiknowwhy.wordpress.com/
 - https://dev.to/bajena
