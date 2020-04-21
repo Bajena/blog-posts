@@ -26,11 +26,32 @@ The main idea is that:
 In the next paragraphs you'll see what were the necessary steps to achieve it.
 
 ## Step 1: Set up the gem
+First thing that needs to be done is to create all the boilerplate required for a Ruby gem. You can e.g. follow up this [guide](https://guides.rubygems.org/make-your-own-gem/) or copy-paste from [MatrixBoost](https://github.com/Bajena/matrix_boost) repository.
+
+In your `gemspec` file make sure to add `ext` folder to the list of required paths, like this: `spec.require_paths = ["lib", "ext"]`. It'll be necessary for the gem to load the extension code we're going to add.
+
+Next insert the C library code in the `ext/<gem_name>` folder. In my case it was [ext/matrix_boost/matrices.c](https://github.com/Bajena/matrix_boost/blob/master/ext/matrix_boost/matrices.c) and [ext/matrix_boost/matrices.h](https://github.com/Bajena/matrix_boost/blob/master/ext/matrix_boost/matrices.h).
 
 ## Step 2: Prepare `extconf.rb`
+In `ext` directory create a file called `extconf.rb` with the following content:
+```ruby
+require "mkmf"
 
-## Step 3:
+create_makefile "matrix_boost/extension"
+```
 
+When you execute the `extconf.rb` file then the `mkmf` library (part of the Ruby extension build system) will prepare a [Makefile](https://en.wikipedia.org/wiki/Make_%28software%29) required to compile the C part of the gem.
+
+The `extconf.rb` in my snippet is the simplest possible config, but of course if needed it can be extended to do things like generating header files, checking other necessary C dependencies or configure C compiler options.
+
+You can check out what  `mkmf` is capable of [here](https://github.com/ruby/ruby/blob/master/lib/mkmf.rb).
+
+## Step 3: Write Ruby <-> C glue code
+Here's the most interesting and the most difficult part. We'll need to write a C file which'll serve as an entry point from the Ruby code. It'll add a Ruby module with functions that'll convert a Ruby arrays into C arrays, perform desired matrix operations and convert the results back into a Ruby array.
+
+## Step 4: Compile the extension
+
+- rakefile
 
 
 Reason
@@ -42,3 +63,4 @@ The idea
 - While browsing ruby's std library I've noticed that the Matrix library is written in pure ruby
 
 List of materials
+
