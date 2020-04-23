@@ -249,3 +249,4 @@ Knowledge about C extensions in Ruby is a bit scattered around the Internet, so 
 - [https://github.com/ruby/ruby/blob/master/doc/extension.rdoc](https://github.com/ruby/ruby/blob/master/doc/extension.rdoc)
 - [https://blog.appsignal.com/2018/10/30/ruby-magic-building-a-ruby-c-extension-from-scratch.html](https://blog.appsignal.com/2018/10/30/ruby-magic-building-a-ruby-c-extension-from-scratch.html)
 - [https://www.rubyguides.com/2019/05/ruby-ffi/](https://www.rubyguides.com/2019/05/ruby-ffi/)
+- [http://silverhammermba.github.io/emberb/c/](http://silverhammermba.github.io/emberb/c/)
