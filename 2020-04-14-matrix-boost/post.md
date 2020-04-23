@@ -181,7 +181,7 @@ end
 
 And run it by calling `bin/rake compile`.
 
-## Step 5:  Test it # 🧪
+## Step 5: Test it 🧪
 Now, if we call `require "matrix_boost/extension"` in our gem we'll be able to use the C extension from the Ruby code.
 
 We'll define our `lib/matrix_boost.rb` as follows:
@@ -233,13 +233,12 @@ end
 
 ![screely-1587671538599](https://user-images.githubusercontent.com/5732023/80143181-b8d41f80-85ac-11ea-977b-5806fafcc523.png)
 
-It turns out that C implementation is **~5.2x faster**! It should make a difference for programs heavily relying on matrix operations, like [ray tracers](https://en.wikipedia.org/wiki/Ray_tracing_%28graphics%29) (who writes
-ray tracers in Ruby is another question 🙈).
+It turns out that C implementation is **~5.2x faster**! It should make a difference for programs heavily relying on matrix operations, like [ray tracers](https://en.wikipedia.org/wiki/Ray_tracing_%28graphics%29) (who writes ray tracers in Ruby is another question 🙈).
 
 ## Summary
 Even though C language might be scary for some people compared to Ruby and though Ruby's C API is a bit messy and not very well documented I think it's worth giving it a shot and trying to write a simple C. Especially when a part of your program needs a performance Boost or if you want to integrate a C library into your codebase.
 
-Full code for `matrix_boost` library can be fund [here](https://github.com/Bajena/matrix_boost).
+Full code for `matrix_boost` library can be found [here](https://github.com/Bajena/matrix_boost).
 
 ## Useful links
 Knowledge about C extensions in Ruby is a bit scattered around the Internet, so I collected some links worth checking if you're struggling with writing your own extension:
