@@ -1,8 +1,8 @@
 ---
 title: Ruby on C(ocaine) 💉 Intro to C extensions for newbies.
-published: false
+published: true
 description: Building C extensions in Ruby isn't really that hard. Let me show you how I built my first one.
-tags: ruby tutorial
+tags: ruby, tutorial
 ---
 
 A few months ago I've read a book by Pat Shaugnessy called [Ruby Under Microscope](http://patshaughnessy.net/ruby-under-a-microscope). It taught me a lot about Ruby's internals and inspired to dive a bit deeper than normally and try building an extension to the language.
@@ -24,6 +24,8 @@ The main idea is that:
 3. C extension will convert the result C matrix back to the format understandable by Ruby
 
 In the next paragraphs you'll see what were the necessary steps to achieve it.
+
+![image](https://user-images.githubusercontent.com/5732023/80178390-5f94dc00-85fe-11ea-956b-923e8c66fcbe.png)
 
 ## Step 1: Set up the gem
 First thing that needs to be done is to create all the boilerplate required for a Ruby gem. You can e.g. follow up this [guide](https://guides.rubygems.org/make-your-own-gem/) or copy-paste from [MatrixBoost](https://github.com/Bajena/matrix_boost) repository.
