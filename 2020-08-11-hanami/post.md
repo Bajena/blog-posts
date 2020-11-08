@@ -1,165 +1,84 @@
-
 ---
-title: Hanami: Unobtrusive JavaScript
+title: Hanami: Thoughts of a Rails developer
 published: false
 description:
-tags: hanami ruby
+tags: hanami, rails, ruby
 ---
 
 # Intro
-In [one](https://dev.to/bajena/hanami-thoughts-of-a-rails-developer-ik1) of my previous posts I wrote down the impressions about Hanami I've had while working on my side project, [Flashcard Genius](https://flashcard-genius.com). One of the things I mentioned there was that some features you'd expect from a framework are missing or underdocumented. One of such features I missed in Hanami was unobtrusive javascript.
+I remember hearing about [Hanami](http://hanamirb.org/) framework for the first time. It was a few years ago, during a talk on [Wroclove.rb](https://wrocloverb.com/) conference. It didn't really catch my attention back then as I was still a newbie in the Ruby world. I was 100% focused on learning Rails and didn't wanna cognitively overload my brain with concepts from yet another framework.
 
-Rails comes out-of-the-box with [helpers](https://guides.rubyonrails.org/working_with_javascript_in_rails.html) that allow  developers to do following things without writing a single JavaScript line:
-- Create links to POST/DELETE/PATCH endpoints (`link_to "Delete article, @article, method: :delete`)
-- Send forms remotely using AJAX just by adding `remote: true` to your form tag.
-- Show simple confirmation dialog after clicking a link (`link_to "Dangerous zone", dangerous_zone_path, data: { confirm: 'Are you sure?' }`)
-- Disable submit buttons while waiting for the form to be sent (`f.submit data: { "disable-with": "Saving..." }`)
+Now, after all these years spent working with Rails I got a little burnt out and thought that it's a hight time to get my hands dirty with something completely new. Having the old wroclove.rb talk in mind I decided to learn Hanami. My favorite way of learning is by doing, so I started a pet project called [flashcard-genius](https://github.com/Bajena/flashcard-genius). The purpose of the app is helping me with learning Italian words. It lets users create, share and memorize sets of flashcards.
 
-In my application I had a need for remote DELETE links (removing flashcards, log out endpoint) and remote forms (quickly add/edit a card without reloading the page), so I started looking for solutions and... turns out there's a way to do it in Hanami thanks to a plugin called [hanami-ujs](https://github.com/hanami/ujs). Surprisingly, this library is hosted in the official Hanami GitHub organization, but the documentation almost doesn't exist. In this post I'm gonna show you how I solved some of my problems using this library.
+After around 2 months of more and less frequent after-hours development I managed to create a prototype (can be found at http://flashcard-genius.com). Even though it's a basic server-renderered CRUD-like application it already forced me to learn a full variety of Hanami concepts and overcome multiple roadblocks.
 
-# Installation
-Installation and setup is well described in gem's [README](https://github.com/hanami/ujs) file, have a look there.
+In this post I'd like to share with you some of my impressions after these few weeks of working with Hanami.
 
-# Use case #1 - DELETE links
-When you're following RESTful resource routing then there's a 99% chance that a route to destroy a resource will be a `DELETE` method route. Unfortunately Hanami doesn't support creating links to DELETE paths out-of-the box, so e.g. my logout link looked like this under the hood:
-```ruby
-<%=
-  form_for :session, routes.logout_path, method: :delete do
-    a href: "#", onclick: "this.closest('form').submit();return false;" do
-      "Logout"
-    end
-  end
-%>
-```
+![image](https://user-images.githubusercontent.com/5732023/97406654-d7b7c380-18f9-11eb-9256-89dac0360af7.png)
 
-Even though it worked it was a nasty hack. It was also violating [`unsafe-inline` directive](https://content-security-policy.com/unsafe-inline/) from Content Security Policy.
+# Why should you use Hanami at all?
+Hanami was started by [Luca Guidi](https://twitter.com/jodosha) as a counterproposal to Rails. The main idea was to build a secure, feature-rich web framework that follows clean architecture principles and relies on "battle tested" libraries like [Sequel](http://sequel.jeremyevans.net/), [Rack](http://rack.github.io/) and [dry-rb](https://dry-rb.org/gems/) gems.
 
-After installing `hanami-ujs` this is one line is all I need instead:
-```ruby
-<%= link_to "Logout", routes.logout_path, "data-method": :delete %>
-```
+Sounds tempting, right? Well, to me it did. Especially because our beloved Rails are often criticized for having become too complex and breaking some of the best practices (e.g. it mixes domain and data-access layers).
 
-# Use case #2 - Remote forms
-Sometimes you want your view to be a bit more dynamic and don't want to reload the whole page when a form is sent. In this case AJAX is your friend. `hanami-ujs` offers sending remote AJAX forms. I used this feature e.g. on the word edit form in Flashcard Genius. You can see how that works on the GIF below:
+One potential benefit of Hanami might be also memory usage. Hanami may be much less memory-consuming and faster (even ~5x) (https://rpanachi.com/2016/03/28/from-rails-to-hanami-part1-container-architecture-model-views-assets)
 
-![screencast 2020-11-08 12-37-52](https://user-images.githubusercontent.com/5732023/98463922-61e80d80-21bf-11eb-937d-9711b63a40c9.gif)
+# What I liked?
 
-In order to achieve this result I needed two things - form definition and JS event handlers.
+## The setup
+Setting up a Hanami application was really simple. The [getting started](https://guides.hanamirb.org/introduction/getting-started/) page explains how to:
+- setup a project
+- create a first route with matching controller action, view and template
+- prepare basic tests
 
-## Form definition
+That good first impression was really important for me, because seeing things work out-of-the box motivated me to continue learning more complex concepts in order to achieve the desired functionalities for my app.
 
-If you know a bit of Hanami you'll notice that this is a standard Hanami form with two additions:
-- `remote: true` - tells `hanami-ujs` that the form will be sent by AJAX
-- `"data-method": :patch` option - method that `hanami-ujs` will use to send the form
+## Hanami project is a "microlith"
+https://guides.hanamirb.org/architecture/overview/
 
-```ruby
-<%=
-  form_for(:word, routes.word_path(word.id), remote: true, "data-method": :patch, class: "edit-word-form") do
-    div class: "card-body" do
-      div class: "row margin-bottom-none" do
-        div class: "col xs-12" do
-          div class: "form-group" do
-            label      :question
-            text_field :question, class: "input-block", required: true, value: word.question
-          end
-        end
+Hanami can have multiple apps per project - it helps with later extraction. Also the domain has its own separate "lib" folder.
 
-        div class: "col xs-12" do
-          div class: "form-group" do
-            label      :question_example
-            text_field :question_example, class: "input-block", value: word.question_example
-          end
-        end
+## Entities, repositories, validation objects and interactors instead of fat models
+Hanami attempts to prevent developers from making the same mistakes as they tend to do in Rails.
 
-        div class: "col xs-12" do
-          div class: "form-group" do
-            label      :answer
-            text_field :answer, class: "input-block", required: true, value: word.answer
-          end
-        end
+- Instead of allowing usage of database-querying methods directly on the model Hanami provides special Repository classes. At the beginning it feels like useless boilerplate, but your future self will be greatful for that.
+- Instead of lifecycle callbacks (`after_create`, `after_build`, etc.) which often end up being untestable and unmaintainable Hanami encourages you to use service-objects called [Interactors](https://guides.hanamirb.org/architecture/interactors/).
+- [Models](https://guides.hanamirb.org/models/overview/) in Hanami  by default provide you automagically only with accessors to the corresponding table in the database. This makes them lightweight compared to the active record model that creates tons of automatically generated methods (like `username`, `username_changed?`, `username_did_change?`, etc.).
+- Authors of Hanami came to the conclusion that validations shouldn't be a part of the model, because the way how we validate data is highly dependent on the use case. So, instead of providing validation mechanisms on the model they decided to create a `Hanami::Validation` [mixin](https://guides.hanamirb.org/validations/overview/) (based on the great gem called [dry-validation](https://github.com/dry-rb/dry-validation)). Controller actions in Hanami have them included out-of-the-box, but you're free to create your own validator objects. If you'd like to learn more about why model validations are an anti-pattern I recommend you to watch this [video](https://www.youtube.com/watch?v=nOUPIa7tWpA) by Piotr Solnica.
 
-        div class: "col xs-12" do
-          div class: "form-group" do
-            label      :answer_example
-            text_field :answer_example, class: "input-block", value: word.answer_example
-          end
-        end
-      end
-    end
+## Data access and manipulation
+As I mentioned before in order to query/manipulate the data in Hanami you have to use repository classes. Hanami developers decided to incorporate another top-notch gem called [Sequel](https://github.com/jeremyevans/sequel) for database communication so you can use all the goodies provided by Jeremy Evans.
 
-    div class: "card-footer" do
-      div class: "row margin-none padding-none flex-edges" do
-        span("Cancel", class: "paper-btn btn-small btn-primary-outline cancel-edit-button margin-none")
-        submit("Save", class: "btn-secondary-outline btn-small edit-save-button margin-none", "data-disable-with": "Saving...")
-      end
-    end
-  end
-%>
+One of the things I liked in Hanami repositories is that when I declare an association, that repository does NOT get any extra methods to its public interface. This is because Hanami wants to prevent to bloat in repositories by adding methods that are often never used.
 
-```
+There are also a few niceties that I haven't used yet but may come in handy in the future:
+- You can [manipulate many records at once](https://guides.hanamirb.org/repositories/overview/#custom-commands) without writing raw SQL queries.
+- There's a support for [database constraints](https://guides.hanamirb.org/migrations/create-table/#constraints)
 
-##  JS event handler
-In order to be able to dynamically react on AJAX response we need some JavaScript on our page. `hanami-ujs` defines two event types:
-- `ajax:before` - Called before the request is sent. It can be used e.g. to clear forms errors after previous request.
-- `ajax:complete` - Called when the response is received (no matter if the request succeeded or not).
+## No global view helpers
+Templates are backed by View classes that can implement the methods that in Rails would be implemented by global helpers. This prevents the ERB templates from being bloated with logic which is quite hard to test.
 
-Here's how my JS code for the edit word form looks like.  The server updates the word and returns a HTML template with the updated record. The new HTML replaces the old one:
-```javascript
-function updateCompleteHandler(event) {
-  var form = event.target;
+## Other
+- Hanami is based on [Rack](https://github.com/rack/rack) which makes it easy to use popular Rack middleware (error trackers, rate limiters etc.)
+- Hanami comes with a Rails-like console command which turns out to be really useful
+- In general Hanami is a pretty mature library that provides most of the features you'd expect from a modern web framework (asset management, DB migration system, mailers, security first, etc).
 
-  // There can be other `ajax:complete` handlers defined on the page.
-  // Make sure that this code is executed when `edit-word-form` is sent.
-  if (!form.className.includes("edit-word-form")) {
-    return;
-  }
+# What I disliked
 
-  var status = event.detail.status;
+## Small ecosystem
+That's obvious - Hanami is a much smaller project than Rails, so there's much less gems, guides dedicated to Hanami on the web. Also many 3rd party services have SDKs prepared specially for Rails so in order to run them with Hanami sometimes you have to spend some additional time.
 
-  if (status >= 200 && status < 300) {
-    alertify.success("Word updated");
+## Guides are sometimes too basic
+Guides cover only very basic use cases. A lot of knowledge is spread on discourse forum/gitter chat/stack overflow. Docs could be improved a bit. They could e.g. guide how to prepare a simple CRUD. Often I had to read some random posts to understand how to achieve sth.
 
-    var card = form.closest(".flashcard-column");
-    // Replace the current word with server's response
-    card.outerHTML = event.detail.response;
-  } else {
-    alertify.error("Update failed");
+Also the fact that some great gems are incorporated into Hanami sometimes is a curse, because you have to understand what APIs are based on what gems and then dig into the gem's code/documentation to understand how to achieve the thing that you want.
 
-    var saveButton = form.getElementsByClassName("edit-save-button")[0];
-    saveButton.disabled = false;
-    saveButton.innerText = "Save"
-  }
-}
+## Using the repositories is painful sometimes
+Maybe I haven't spent enough time with Hanami repositories and Sequel yet, but I didn't really see a simple way of DRYing the parts of queries, so I ended up writing query methods having many parts in common.
 
-document.addEventListener("ajax:complete", updateCompleteHandler);
-```
-
-# Additional useful features
-`hanami-ujs` has also two other useful features:
-- You can add `"disable-with": "Saving..."` to your form submit buttons. This'll automatically disable the button to prevent double-sends and replace the its text with `Saving...`.
-One drawback of this feature is that it wasn't created with AJAX forms in mind, so when you want to it `disable-with` with remote forms you'll have to re-enable the button and change its text back to original after the request. You can find the example in previous snippets.
-- You can show a simple confirmation dialog that prevents sending a form/following a link by adding `"data-confirm": "Are you sure you want to do it?"`.
-This is how one of the buttons in my app looks like:
-  ```ruby
-  <%=
-    link_to(
-      "",
-      routes.word_list_path(word_list.id),
-      id: "delete-list-button",
-      class: "paper-btn btn-danger-outline btn-small margin-none fas fa-trash-alt",
-      "data-method": :delete,
-      "data-confirm": "Are you sure you want to delete this list?",
-      "data-disable-with": "",
-      title: "Delete list"
-    )
-  %>
-    ```
-
-  which results in a following message:
-
-  ![image](https://user-images.githubusercontent.com/5732023/98468076-1b9fa800-21d9-11eb-983a-9131bb3b2438.png)
+I also remember struggling with writing a repository method that'd return an additional column based on `GROUP BY` clause. It took me quite a while to solve it. It'd be cool if the docs included a bit more complex usage examples like this one.
 
 # Summary
-Even though `hanami-ujs` may seem quite abandoned it provides tools that save a lot of time when creating simple server-rendered apps. If you're creating such an app in Hanami there's a big chance you'll want to use it. For more `hanami-ujs` examples (and Hanami in general) you can check Flashcard Genius' repository at https://github.com/Bajena/flashcard-genius.
+I must admit that even though I really liked using Hanami I'd probably not suggest starting/converting any bigger app to Hanami unless you want to spend lots of time on forums/chats and solve problems that had already been solved in Rails ecosystem.
 
-Happy coding :)
+Still, I really admire all the ideas and work put by the creators of Hanami and I'm still gonna develop my side project with that framework. Thank you guys!
