@@ -1,41 +1,31 @@
 ---
-title: Ruby Hash trick for creating an in-memory cache
-published: false
-description:
-tags:
-cover_image: https://dev-to-uploads.s3.amazonaws.com/uploads/articles/51g3bt9o9pqj25wsdkyq.jpeg
+title: Ruby TIL: Bubble babble encoding algorithm
+published: true
+tags: ruby, algorithms
+cover_image: https://dev-to-uploads.s3.amazonaws.com/uploads/articles/g8ffzicm49l6637kipov.jpeg
 ---
 
-In this short post I'd like to show you a smart trick for memoizing results of computations in memory. Sometimes you need to store results of multiple operations in memory for reuse and typically it's done using a `Hash` instance.
+Today I'd like to share an interesting finding from Ruby's standard library. The method is called `bubblebabble` and lives in the [Digest module](https://ruby-doc.org/stdlib-2.6.2/libdoc/digest/rdoc/Digest.html#method-c-bubblebabble).
 
-E.g. let's say that we have a method called for checking whether a Star Wars character is from the dark side:
+The main point of this method is to create digests that look and sound similarly to human words, so that they can be recognized and visually compared more easily than hexadecimal digests.
+
+You can either use the method directly on `Digest` module (it'll run the encoding algorithm directly on the provided string) or on a specific digest class, like `Digest::SHA1` (it'll then run the algorithm on a SHA1 digest of the input string):
 ```ruby
-def dark_side?(character_name)
-  StarWars::Character.find_by(name: character_name).dark_side?
-end
+irb(main):001:0> require 'digest/bubblebabble'
+=> true
+irb(main):002:0> Digest.bubblebabble('a')
+=> "ximex"
+irb(main):003:0> Digest::SHA1.bubblebabble('a')
+=> "xociz-lynaf-livip-huniz-samah-tolat-sivov-pipiv-petel-kynyr-mexix"
 ```
 
-The method is heavy, because it needs to run a DB query in order to get a result for a given input, so if we know that there might be a need for calling it many times with the same `character_name` it might make sense to store the result for future use.
+### Some history
 
-Here's one possibility of how the results can be memoized:
-```ruby
-def dark_side?(character_name)
-  @dark_side_cache ||= {}
+The bubble babble encoding was invented in 2000 by Atti Huima. You can find the original document with algorithm's description at http://web.mit.edu/kenta/www/one/bubblebabble/spec/jrtrjwzi/draft-huima-01.txt.
 
-  @dark_side_cache[character_name] = StarWars::Character.find_by(name: character_name).dark_side? unless @dark_side_cache.key?(character_name)
+According to the author, the name combines the name of a video game classic [Bubble Bobble](https://en.wikipedia.org/wiki/Bubble_Bobble) and the fact that the generated strings can be pronounced but sound like babbling.
 
-  @dark_side_cache[character_name]
-end
-```
+### Is this used anywhere for real?
+Yes, this funny encoding method is used by the SSH2 suite to display easy-to-remember key fingerprints. The key is converted into a textual form, digested using SHA1, and run through bubble babble to create the key fingerprint.
 
-However, Ruby's `Hash` has a nice [constructor](https://ruby-doc.org/core-3.0.1/Hash.html#method-c-new) variant that allows passing a block.
-
-Check this solution out, isn't it a pure Ruby beauty? 💅
-```ruby
-def dark_side?(character_name)
-  @dark_side_cache ||= Hash.new do |hash, char_name|
-    hash[char_name] = StarWars::Character.find_by(name: char_name).dark_side?
-  end
-  @dark_side_cache[character_name]
-end
-```
+You can test it out yourself by running  `ssh-keygen` with `-B` option (http://man.openbsd.org/ssh-keygen.1#B).
