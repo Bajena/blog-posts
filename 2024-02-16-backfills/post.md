@@ -178,11 +178,47 @@ class LoaderWorker
 end
 ```
 
+### Use Sidekiq Batches to monitor the progress
 
-### Use Sidekiq Batches to Monitor the Progress
+When processing a huge volume of migration Sidekiq jobs it might be difficult to track overall progress. This is where [Sidekiq batches](https://github.com/sidekiq/sidekiq/wiki/Batches) come in handy. By scheduling jobs within a batch you can later easily see the percentage of completion and view all the failed executions in Sidekiq dashboard.
+
+You can also define a callback job to be performed once a batch is finished. Such callback job can for example send you a Slack notification with an information whether the batch succeeded or failed freeing you of constantly checking the Sidekiq
 
 Sidekiq Batches allow you to group jobs and monitor their overall progress. This is especially useful for large migrations, as it provides visibility into the process and helps identify issues early.
 
+In the snippet below you can find an example of a generic job that allows us to schedule a defined job class for each of the Productboard spaces:
+```ruby
+module Sidekiq::Migrations
+  class ScheduleForAllSpacesJob < ApplicationJob
+    sidekiq_options(queue: :low)
+
+    def perform(job_class, *arguments)
+      batch = Sidekiq::Batch.new
+
+      batch.description = "#{job_class}Batch"
+      batch.on(:complete, Sidekiq::Migrations::ScheduleForAllSpacesJob::Callback, 'job_class' => job_class)
+      batch.jobs do
+        Space.all.select(:id).find_in_batches do |spaces|
+          Sidekiq::Client.push_bulk('class' => job_class.constantize, 'args' => spaces.map { |space| [space.id] + arguments })
+        end
+      end
+    end
+  end
+end
+
+class Sidekiq::Migrations::ScheduleForAllSpacesJob::Callback
+  def on_complete(status, options)
+    Rails.logger.info "[#{self.class.name}] Batch completed: #{status.as_json}, #{options}"
+  end
+end
+
+# And then use it like this:
+Sidekiq::Migrations::ScheduleForAllSpacesJob.perform_async(
+  History::Sidekiq::Migrations::BackfillHistoryEntriesForFeaturesJob
+)
+```
+
+![Sidekiq batch](https://github.com/Bajena/blog-posts/assets/5732023/5450b8f1-e8df-4bc8-835f-1c4081c1510b)
 
 ### Leverage Sidekiq::Iteration Gem
 
